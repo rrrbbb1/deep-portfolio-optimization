@@ -5,12 +5,10 @@ from tqdm import tqdm
 
 import argparse
 
-from src.load_data import load_df
-
-from src.dataset import PortfolioDataset
-
-from src.model import POptModel
-from src.loss import SharpeLoss, WeightPenalty
+from load_data import load_df
+from dataset import PortfolioDataset
+from model import POptModel
+from loss import SharpeLoss, WeightPenalty
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -47,7 +45,7 @@ print(f'using device: {device}')
 model = POptModel(n_asset = train_dataset.k).to(device)
 
 sharpe_crit = SharpeLoss().to(device)
-weight_crit = WeightPenalty().to(device)
+weight_crit = WeightPenalty(param=0.1).to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
 
@@ -70,7 +68,7 @@ for epoch in range(n_epoch):
         w, next_r = model(x)
         sharpe_loss = sharpe_crit(w, next_r)
         weight_loss = weight_crit(w)
-        loss = sharpe_loss
+        loss = sharpe_loss + weight_loss
         loss.backward()
         
         optimizer.step()

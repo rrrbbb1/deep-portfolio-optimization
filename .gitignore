@@ -1,0 +1,16 @@
+# Ignore Python cache files
+__pycache__/
+*.pyc
+
+# Ignore Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Ignore local configuration files
+config.yaml
+.env
+
+# Ignore data folder
+data/
+
+# Ignore .vscode
+.vscode/
