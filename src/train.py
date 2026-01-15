@@ -96,7 +96,7 @@ for epoch in range(n_epoch):
             w, next_r = model(x)
             sharpe_loss = sharpe_crit(w, next_r)
             weight_loss = weight_crit(w)
-            loss = sharpe_loss + weight_loss
+            loss = sharpe_loss + weight_crit.param * weight_loss
 
             test_loss += loss.item()
             test_sharpe_loss += sharpe_loss.item()
