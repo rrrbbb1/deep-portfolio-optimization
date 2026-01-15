@@ -1,5 +1,6 @@
 import torch
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
 from tqdm import tqdm
 
@@ -49,7 +50,14 @@ weight_crit = WeightPenalty(param=0.005).to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
 
-n_epoch = 100
+from datetime import datetime
+run_id = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+writer = SummaryWriter(
+    log_dir=f"runs/deep_portfolio_optimization/{run_id}"
+)
+
+n_epoch = 10_000
 for epoch in range(n_epoch):
     model.train()
     train_loss = 0.0
@@ -106,16 +114,26 @@ for epoch in range(n_epoch):
     test_sharpe_loss /= len(test_dataloader)
     test_weight_loss /= len(test_dataloader)
 
+    writer.add_scalar("Loss/train", train_loss, epoch)
+    writer.add_scalar("Loss/test", test_loss, epoch)
+
+    # You minimize negative Sharpe → log positive Sharpe
+    writer.add_scalar("Sharpe/train", -train_sharpe_loss, epoch)
+    writer.add_scalar("Sharpe/test", -test_sharpe_loss, epoch)
+
+    writer.add_scalar("WeightPenalty/train", train_weight_loss, epoch)
+    writer.add_scalar("WeightPenalty/test", test_weight_loss, epoch)
+
     print(
         f"Epoch {epoch+1:03d} | "
         f"Train Loss       : {train_loss:.4f} | "
-        f"Test Loss: {test_loss:.4f}               | \n"
+        f"Test Loss: {test_loss:.4f}             \n"
 
         f"          | "
         f"Train Sharpe.    : {-train_sharpe_loss:.4f}  | "
-        f"Test Sharpe: {-test_sharpe_loss:.4f}     | \n"
+        f"Test Sharpe: {-test_sharpe_loss:.4f}    \n"
 
         f"          | "
         f"Train Weight Pen.: {train_weight_loss:.4f}  | "
-        f"Test Weight Pen.: {test_weight_loss:.4f} | \n"
+        f"Test Weight Pen.: {test_weight_loss:.4f} \n"
     )

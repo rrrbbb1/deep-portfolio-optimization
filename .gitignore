@@ -12,5 +12,8 @@ config.yaml
 # Ignore data folder
 data/
 
-# Ignore .vscode
+# Ignore .vscode/
 .vscode/
+
+# Ignore runs/
+runs/
