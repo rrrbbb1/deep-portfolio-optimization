@@ -46,7 +46,7 @@ print(f'using device: {device}')
 model = POptModel(n_asset = train_dataset.k).to(device)
 
 sharpe_crit = SharpeLoss().to(device)
-weight_crit = WeightPenalty(param=0.005).to(device)
+weight_crit = WeightPenalty(param=0.0005).to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
 
@@ -98,7 +98,7 @@ for epoch in range(n_epoch):
     test_weight_loss = 0.0
 
     with torch.no_grad():
-        for batch in tqdm(test_dataloader, desc="Eval"):
+        for batch in tqdm(test_dataloader, desc="Test"):
             x = batch['input_r'].to(device)
 
             w, next_r = model(x)
