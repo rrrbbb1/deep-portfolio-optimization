@@ -45,7 +45,7 @@ print(f'using device: {device}')
 model = POptModel(n_asset = train_dataset.k).to(device)
 
 sharpe_crit = SharpeLoss().to(device)
-weight_crit = WeightPenalty(param=0.1).to(device)
+weight_crit = WeightPenalty(param=0.005).to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
 
@@ -68,7 +68,7 @@ for epoch in range(n_epoch):
         w, next_r = model(x)
         sharpe_loss = sharpe_crit(w, next_r)
         weight_loss = weight_crit(w)
-        loss = sharpe_loss + weight_loss
+        loss = sharpe_loss + weight_crit.param * weight_loss
         loss.backward()
         
         optimizer.step()

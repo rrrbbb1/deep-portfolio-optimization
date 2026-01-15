@@ -26,4 +26,4 @@ class WeightPenalty(torch.nn.Module):
         penalty_k = torch.sum(torch.abs(delta_w), dim=1)
         penalty = torch.sum(penalty_k, dim=1)
 
-        return self.param * penalty.mean()
+        return penalty.mean()
