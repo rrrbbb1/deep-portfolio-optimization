@@ -6,8 +6,7 @@ __pycache__/
 .ipynb_checkpoints/
 
 # Ignore local configuration files
-config.yaml
-.env
+config/data/
 
 # Ignore data folder
 data/

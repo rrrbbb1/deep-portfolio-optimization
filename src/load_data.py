@@ -19,4 +19,21 @@ def load_df(data_path):
     returns_df = returns_df[59:]
     prices_df = prices_df[59:]
 
-    return prices_df, returns_df, norm_returns_df
+    df_map = {}
+
+    df_map['prices'] = prices_df
+    df_map['returns'] = returns_df
+
+    df_map['norm_returns'] = norm_returns_df
+    df_map['means'] = means_df
+    df_map['stds'] = stds_df
+
+    return df_map
+
+def get_asset_list(data_path):
+    stocks_df = pd.read_parquet(data_path)
+
+    tickers = stocks_df.groupby('Ticker')['Close'].count().sort_values(ascending=False)
+    tickers = tickers[tickers == max(tickers)].index.to_list()
+
+    return tickers[:10]

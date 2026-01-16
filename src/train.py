@@ -6,15 +6,14 @@ from tqdm import tqdm
 
 import argparse
 
-from load_data import load_df
-from dataset import PortfolioDataset
-from model import POptModel
-from loss import SharpeLoss, WeightPenalty
+from src.load_data import load_df, get_asset_list
+from src.init_dataset import init_dataset
+from src.model import POptModel
+from src.loss import SharpeLoss, WeightPenalty
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--data_path", type=str, required=True,
-    help="Path to the returns dataframe"
+    "--data_path", type=str, required=True
 )
 
 parser.add_argument(
@@ -33,25 +32,13 @@ parser.add_argument(
 args = parser.parse_args()
 
 
+
 DATA_PATH = args.data_path
-prices_df, returns_df, norm_returns_df = load_df(DATA_PATH)
+df_map = load_df(DATA_PATH)
+asset_list = get_asset_list(DATA_PATH)
 
-num_timesteps, _ = returns_df.shape
-train_lim = int(0.8 * num_timesteps)
-
-train_pri_df = prices_df[:train_lim]
-train_ret_df = returns_df[:train_lim]
-train_inpts_df = norm_returns_df[:train_lim]
-
-test_pri_df = prices_df[train_lim:]
-test_ret_df = returns_df[train_lim:]
-test_inpts_df = norm_returns_df[train_lim:]
-
-train_dataset = PortfolioDataset(train_pri_df, train_ret_df, train_inpts_df, n_asset=args.portfolio_dim)
-test_dataset = PortfolioDataset(test_pri_df, test_ret_df, test_inpts_df, n_asset=args.portfolio_dim)
-
-train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size)
-test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size)
+feature_mod = 'signal'
+train_dataloader, test_dataloader = init_dataset(df_map, feature_mod, asset_list, split_ratio=0.8, batch_size=args.batch_size)
 
 
 device = torch.device(
@@ -60,7 +47,8 @@ device = torch.device(
 print(f'using device: {device}')
 
 model = POptModel(
-    n_asset = train_dataset.k
+    n_asset = train_dataloader.dataset.k,
+    ts_dim = train_dataloader.dataset.ts_dim
 ).to(device)
 
 sharpe_crit = SharpeLoss().to(device)
