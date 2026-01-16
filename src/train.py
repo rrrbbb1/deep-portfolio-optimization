@@ -13,29 +13,45 @@ from loss import SharpeLoss, WeightPenalty
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--data_path",
-    type=str,
-    required=True,
+    "--data_path", type=str, required=True,
     help="Path to the returns dataframe"
+)
+
+parser.add_argument(
+    "--portfolio_dim", type=int, required=True,
+    help='Number of asset composing a portfolio'
+)
+parser.add_argument(
+    "--lr", type=float, required=True,
+)
+parser.add_argument(
+    "--batch_size", type=int, required=True,
+)
+parser.add_argument(
+    "--lambda_w", type=float, required=True
 )
 args = parser.parse_args()
 
 
 DATA_PATH = args.data_path
-returns_df = load_df(DATA_PATH)
-
+prices_df, returns_df, norm_returns_df = load_df(DATA_PATH)
 
 num_timesteps, _ = returns_df.shape
 train_lim = int(0.8 * num_timesteps)
 
-train_df = returns_df[:train_lim]
-test_df = returns_df[train_lim:]
+train_pri_df = prices_df[:train_lim]
+train_ret_df = returns_df[:train_lim]
+train_inpts_df = norm_returns_df[:train_lim]
 
-train_dataset = PortfolioDataset(train_df)
-test_dataset = PortfolioDataset(test_df)
+test_pri_df = prices_df[train_lim:]
+test_ret_df = returns_df[train_lim:]
+test_inpts_df = norm_returns_df[train_lim:]
 
-train_dataloader = DataLoader(train_dataset, batch_size=256)
-test_dataloader = DataLoader(test_dataset, batch_size=256)
+train_dataset = PortfolioDataset(train_pri_df, train_ret_df, train_inpts_df, n_asset=args.portfolio_dim)
+test_dataset = PortfolioDataset(test_pri_df, test_ret_df, test_inpts_df, n_asset=args.portfolio_dim)
+
+train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size)
+test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size)
 
 
 device = torch.device(
@@ -43,18 +59,27 @@ device = torch.device(
 )
 print(f'using device: {device}')
 
-model = POptModel(n_asset = train_dataset.k).to(device)
+model = POptModel(
+    n_asset = train_dataset.k
+).to(device)
 
 sharpe_crit = SharpeLoss().to(device)
-weight_crit = WeightPenalty(param=0.0005).to(device)
+weight_crit = WeightPenalty(
+    param=args.lambda_w
+).to(device)
 
-optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
+optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
 from datetime import datetime
 run_id = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 writer = SummaryWriter(
     log_dir=f"runs/deep_portfolio_optimization/{run_id}"
+)
+
+writer.add_hparams(
+    hparam_dict=vars(args),
+    metric_dict={}
 )
 
 n_epoch = 10_000
@@ -67,14 +92,17 @@ for epoch in range(n_epoch):
     print(
         f"Running epoch {epoch+1:03d} ..."
     )
-    
+
     for batch in tqdm(train_dataloader, desc="Train"):
-        x = batch['input_r'].to(device)      # (B, L, K)
+        x = batch['input'].to(device)      # (B, L, 2 * K) (price+returns)
+        r = batch['returns'].to(device)
 
         optimizer.zero_grad()
 
-        w, next_r = model(x)
-        sharpe_loss = sharpe_crit(w, next_r)
+        w = model(x)
+        r = r[:, model.decision_step+1:, :]
+
+        sharpe_loss = sharpe_crit(w, r)
         weight_loss = weight_crit(w)
         loss = sharpe_loss + weight_crit.param * weight_loss
         loss.backward()
@@ -99,10 +127,12 @@ for epoch in range(n_epoch):
 
     with torch.no_grad():
         for batch in tqdm(test_dataloader, desc="Test"):
-            x = batch['input_r'].to(device)
+            x = batch['input'].to(device)      # (B, L, 2 * K) (price+returns)
+            r = batch['returns'].to(device)
 
-            w, next_r = model(x)
-            sharpe_loss = sharpe_crit(w, next_r)
+            w = model(x)
+            r = r[:, model.decision_step+1:, :]
+            sharpe_loss = sharpe_crit(w, r)
             weight_loss = weight_crit(w)
             loss = sharpe_loss + weight_crit.param * weight_loss
 

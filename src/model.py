@@ -2,14 +2,17 @@ import torch
 import torch.nn.functional as F
 
 class POptModel(torch.nn.Module):
-    def __init__(self, n_asset: int, decision_step: int = 20, hidden_dim: int = 64, num_layers: int = 5):
+    def __init__(self, n_asset: int, decision_step: int = 20, hidden_dim: int = 64, num_layers: int = 1):
         super().__init__()
         
         self.n_asset = n_asset
         self.decision_step = decision_step
 
+        self.price_norm = torch.nn.RMSNorm(n_asset)
+        self.return_norm = torch.nn.RMSNorm(n_asset)
+
         self.lstm = torch.nn.LSTM(
-            input_size = n_asset,
+            input_size = 2 * n_asset,
             hidden_size = hidden_dim,
             num_layers = num_layers,
             batch_first = True
@@ -21,8 +24,15 @@ class POptModel(torch.nn.Module):
             torch.nn.Linear(hidden_dim, n_asset)
         )
     
-    def forward(self, r):
-        h_t, _ = self.lstm(r)
+    def forward(self, x):
+        prices = x[:, :, :self.n_asset]
+        returns = x[:, :, self.n_asset:]
+
+        norm_price = self.price_norm(prices)
+        norm_ret = self.return_norm(returns)
+
+        norm_x = torch.cat((norm_price, norm_ret), dim=-1)
+        h_t, _ = self.lstm(norm_x)
         #print('h_t.shape: ', h_t.shape)
 
         h_decision = h_t[: , self.decision_step:-1, :]
@@ -33,8 +43,5 @@ class POptModel(torch.nn.Module):
 
         w = F.softmax(scores, dim=-1)
         #print('w.shape: ', w.shape)
-
-        next_r = r[:, self.decision_step+1:, :]
-        #print('next_r.shape: ', next_r.shape)
         
-        return w, next_r
+        return w 

@@ -4,14 +4,21 @@ import pandas as pd
 from torch.utils.data import Dataset
 
 class PortfolioDataset(Dataset):
-    def __init__(self, returns_df: pd.DataFrame, lookback: int = 60, decision_step: int = 10, n_asset: int = 10, n_samples: int = 100_000):
+    def __init__(
+            self, prices_df: pd.DataFrame, returns_df: pd.DataFrame, norm_returns_df: pd.DataFrame,
+            n_asset: int = 10, lookback: int = 60, n_samples: int = 100_000
+        ):
+
+        self.prices = prices_df.values.astype(np.float32)
         self.returns = returns_df.values.astype(np.float32)
+        self.inputs = norm_returns_df.values.astype(np.float32)
+
+        assert self.returns.shape == self.prices.shape
+        assert self.returns.shape == self.inputs.shape
+
         self.T, self.N = self.returns.shape
 
         self.lookback = lookback
-        self.decision_step = decision_step
-        self.window_length = lookback + decision_step
-
         self.k = n_asset
         self.n_samples = n_samples
 
@@ -19,8 +26,18 @@ class PortfolioDataset(Dataset):
         return self.n_samples
     
     def __getitem__(self, idx):
-        t = np.random.randint(self.window_length, self.T)
+        t = np.random.randint(self.lookback, self.T)
         asset_idx = np.random.choice(self.N, self.k, replace=False)
-        window = self.returns[t - self.lookback:t, asset_idx]
+
+        inputs = self.inputs[t - self.lookback:t, asset_idx]
+        prices = self.prices[t - self.lookback:t, asset_idx]
+
+        window = np.concatenate((prices, inputs), axis=1)
+
+        returns = self.returns[t - self.lookback:t, asset_idx]
         
-        return {'input_r': torch.tensor(window), 'asset_idx': torch.tensor(asset_idx)}
+        return {
+            'input': torch.tensor(window),
+            'returns': torch.tensor(returns),
+            'asset_idx': torch.tensor(asset_idx)
+            }
