@@ -41,4 +41,4 @@ class POptModel(torch.nn.Module):
         w = F.softmax(scores, dim=-1)
         #print('w.shape: ', w.shape)
         
-        return w 
+        return w

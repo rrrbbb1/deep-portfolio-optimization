@@ -1,0 +1,8 @@
+defaults:
+  - data: etf
+  - inputs: signal
+  - training: default
+  - model: lstm
+
+training:
+  lr: 5e-5   # override

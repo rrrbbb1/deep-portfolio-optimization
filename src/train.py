@@ -12,26 +12,8 @@ from src.model import POptModel
 from src.loss import SharpeLoss, WeightPenalty
 
 parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--data_path", type=str, required=True
-)
-
-parser.add_argument(
-    "--portfolio_dim", type=int, required=True,
-    help='Number of asset composing a portfolio'
-)
-parser.add_argument(
-    "--lr", type=float, required=True,
-)
-parser.add_argument(
-    "--batch_size", type=int, required=True,
-)
-parser.add_argument(
-    "--lambda_w", type=float, required=True
-)
+parser.add_argument("--config", type=str, required=True)
 args = parser.parse_args()
-
-
 
 DATA_PATH = args.data_path
 df_map = load_df(DATA_PATH)
