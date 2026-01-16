@@ -19,9 +19,9 @@ class POptModel(torch.nn.Module):
         )
 
         self.head = torch.nn.Sequential(
-            torch.nn.Linear(hidden_dim, 512),
+            torch.nn.Linear(hidden_dim, hidden_dim),
             torch.nn.ReLU(),
-            torch.nn.Linear(512, n_asset)
+            torch.nn.Linear(hidden_dim, n_asset)
         )
     
     def forward(self, x):
