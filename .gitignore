@@ -8,7 +8,6 @@ __pycache__/
 # Ignore local configuration files
 
 # Ignore data folder
-data/
 
 # Ignore .vscode/
 .vscode/
