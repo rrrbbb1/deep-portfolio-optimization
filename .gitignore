@@ -6,8 +6,10 @@ __pycache__/
 .ipynb_checkpoints/
 
 # Ignore local configuration files
+config/data/
 
 # Ignore data folder
+data/
 
 # Ignore .vscode/
 .vscode/

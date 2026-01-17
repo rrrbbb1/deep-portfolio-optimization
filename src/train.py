@@ -23,7 +23,7 @@ inputs_cfg = cfg['inputs']
 train_cfg = cfg['training']
 model_cfg = cfg['model']
 
-DATA_PATH = args.data_path
+DATA_PATH = data_cfg['data_path']
 df_map = load_df(DATA_PATH)
 if 'asset_list' in data_cfg:
     asset_list = data_cfg['asset_list']
@@ -33,11 +33,11 @@ else:
     asset_list = None
 
 train_dataloader, test_dataloader = init_dataset(
-    df_map = df_map, 
-    feature_mod = inputs_cfg['feature_mod'], 
-    asset_list = asset_list, 
-    split_ratio = 0.8, 
-    batch_size = train_cfg['batch_size']
+    df_map=df_map, 
+    feature_mod=inputs_cfg['feature_mod'], 
+    asset_list=asset_list, 
+    split_ratio=0.8, 
+    batch_size=train_cfg['batch_size']
 )
 
 
@@ -47,16 +47,16 @@ device = torch.device(
 print(f'using device: {device}')
 
 model = POptModel(
-    n_asset = train_dataloader.dataset.k,
-    ts_dim = train_dataloader.dataset.ts_dim
+    n_asset=train_dataloader.dataset.k,
+    ts_dim=train_dataloader.dataset.ts_dim
 ).to(device)
 
 sharpe_crit = SharpeLoss().to(device)
 weight_crit = WeightPenalty(
-    param=args.lambda_w
+    param=train_cfg['lambda_w']
 ).to(device)
 
-optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+optimizer = torch.optim.Adam(model.parameters(), lr=train_cfg['lr'], weight_decay=train_cfg['weight_decay'])
 
 from datetime import datetime
 run_id = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -70,7 +70,7 @@ writer.add_hparams(
     metric_dict={}
 )
 
-n_epoch = 10_000
+n_epoch = train_cfg['n_epoch']
 for epoch in range(n_epoch):
     model.train()
     train_loss = 0.0

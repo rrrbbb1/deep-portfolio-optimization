@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 
 class POptModel(torch.nn.Module):
-    def __init__(self, n_asset: int, ts_dim: int, decision_step: int = 20, hidden_dim: int = 64, num_layers: int = 1):
+    def __init__(self, n_asset: int, ts_dim: int, decision_step: int = 20, hidden_dim: int = 64, num_layers: int = 5):
         super().__init__()
         
         self.n_asset = n_asset
@@ -10,7 +10,6 @@ class POptModel(torch.nn.Module):
         
         self.decision_step = decision_step
 
-        self.norm = torch.nn.GroupNorm(ts_dim, ts_dim * n_asset)
         self.lstm = torch.nn.LSTM(
             input_size = ts_dim * n_asset,
             hidden_size = hidden_dim,
@@ -25,11 +24,8 @@ class POptModel(torch.nn.Module):
         )
     
     def forward(self, x):
-        x = x.permute(0, 2, 1)
-        x_norm = self.norm(x)
-        x_norm = x_norm.permute(0, 2, 1)
 
-        h_t, _ = self.lstm(x_norm)
+        h_t, _ = self.lstm(x)
         #print('h_t.shape: ', h_t.shape)
 
         h_decision = h_t[: , self.decision_step:-1, :]
@@ -40,5 +36,4 @@ class POptModel(torch.nn.Module):
 
         w = F.softmax(scores, dim=-1)
         #print('w.shape: ', w.shape)
-        
         return w

@@ -5,4 +5,4 @@ defaults:
   - model: lstm
 
 training:
-  lr: 5e-5   # override
+  batch_size: 1_024

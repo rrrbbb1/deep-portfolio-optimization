@@ -1,2 +1,2 @@
-data_path: ""
+data_path: "/Users/remibreton/Documents/datasets/ohlc/stocks_data.parquet"
 stock_list: []
