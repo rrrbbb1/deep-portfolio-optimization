@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 def load_df(data_path):
     stocks_df = pd.read_parquet(data_path)
@@ -30,10 +31,11 @@ def load_df(data_path):
 
     return df_map
 
-def get_asset_list(data_path):
+def get_rnd_asset_list(data_path, k=10, seed=None):
     stocks_df = pd.read_parquet(data_path)
 
-    tickers = stocks_df.groupby('Ticker')['Close'].count().sort_values(ascending=False)
-    tickers = tickers[tickers == max(tickers)].index.to_list()
+    tickers = stocks_df.groupby('Ticker')['Close'].count()
+    tickers = tickers[tickers == tickers.max()].index.to_numpy()
 
-    return tickers[:10]
+    rng = np.random.default_rng(seed)
+    return rng.choice(tickers, size=k, replace=False).tolist()

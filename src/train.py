@@ -6,7 +6,8 @@ from tqdm import tqdm
 
 import argparse
 
-from src.load_data import load_df, get_asset_list
+from src.load_config import load_config
+from src.load_data import load_df, get_rnd_asset_list
 from src.init_dataset import init_dataset
 from src.model import POptModel
 from src.loss import SharpeLoss, WeightPenalty
@@ -15,12 +16,29 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--config", type=str, required=True)
 args = parser.parse_args()
 
+cfg = load_config(args.config)
+
+data_cfg = cfg['data']
+inputs_cfg = cfg['inputs']
+train_cfg = cfg['training']
+model_cfg = cfg['model']
+
 DATA_PATH = args.data_path
 df_map = load_df(DATA_PATH)
-asset_list = get_asset_list(DATA_PATH)
+if 'asset_list' in data_cfg:
+    asset_list = data_cfg['asset_list']
+    if len(asset_list) == 0:
+        asset_list = get_rnd_asset_list(DATA_PATH)
+else:
+    asset_list = None
 
-feature_mod = 'signal'
-train_dataloader, test_dataloader = init_dataset(df_map, feature_mod, asset_list, split_ratio=0.8, batch_size=args.batch_size)
+train_dataloader, test_dataloader = init_dataset(
+    df_map = df_map, 
+    feature_mod = inputs_cfg['feature_mod'], 
+    asset_list = asset_list, 
+    split_ratio = 0.8, 
+    batch_size = train_cfg['batch_size']
+)
 
 
 device = torch.device(
