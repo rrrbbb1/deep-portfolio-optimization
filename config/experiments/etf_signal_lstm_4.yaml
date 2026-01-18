@@ -5,4 +5,5 @@ defaults:
   - model: lstm
 
 training:
-  batch_size: 1_024
+  lambda_w: 0.0
+  lr: 1.0e-4

@@ -2,6 +2,8 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
+import matplotlib.pyplot as plt
+
 from tqdm import tqdm
 
 import argparse
@@ -29,6 +31,7 @@ if 'asset_list' in data_cfg:
     asset_list = data_cfg['asset_list']
     if len(asset_list) == 0:
         asset_list = get_rnd_asset_list(DATA_PATH)
+        print('Using tickers: ', asset_list)
 else:
     asset_list = None
 
@@ -52,9 +55,7 @@ model = POptModel(
 ).to(device)
 
 sharpe_crit = SharpeLoss().to(device)
-weight_crit = WeightPenalty(
-    param=train_cfg['lambda_w']
-).to(device)
+weight_crit = WeightPenalty().to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=train_cfg['lr'], weight_decay=train_cfg['weight_decay'])
 
@@ -72,6 +73,7 @@ writer.add_hparams(
 
 n_epoch = train_cfg['n_epoch']
 for epoch in range(n_epoch):
+    
     model.train()
     train_loss = 0.0
     train_sharpe_loss = 0.0
@@ -92,7 +94,7 @@ for epoch in range(n_epoch):
 
         sharpe_loss = sharpe_crit(w, r)
         weight_loss = weight_crit(w)
-        loss = sharpe_loss + weight_crit.param * weight_loss
+        loss = sharpe_loss + train_cfg['lambda_w'] * weight_loss
         loss.backward()
         
         optimizer.step()
@@ -114,7 +116,7 @@ for epoch in range(n_epoch):
     test_weight_loss = 0.0
 
     with torch.no_grad():
-        for batch in tqdm(test_dataloader, desc="Test"):
+        for k, batch in enumerate(tqdm(test_dataloader, desc="Test")):
             x = batch['input'].to(device)      # (B, L, 2 * K) (price+returns)
             r = batch['returns'].to(device)
 
@@ -122,11 +124,29 @@ for epoch in range(n_epoch):
             r = r[:, model.decision_step+1:, :]
             sharpe_loss = sharpe_crit(w, r)
             weight_loss = weight_crit(w)
-            loss = sharpe_loss + weight_crit.param * weight_loss
+            loss = sharpe_loss + train_cfg['lambda_w'] * weight_loss
 
+            """
+            if k == 0:
+                plt.figure(figsize=(16, 4))
+                plt.plot(w[0].cpu())
+                plt.savefig(f'w_plot_epoch_{epoch}.png')
+                plt.close()
+
+                plt.figure(figsize=(16, 4))
+                plt.plot(x[0, :, :10].cpu())
+                plt.savefig(f'feature_1_plot_epoch_{epoch}.png')
+                plt.close()
+
+                plt.figure(figsize=(16, 4))
+                plt.plot(x[0, :, 10:].cpu())
+                plt.savefig(f'feature_2_plot_epoch_{epoch}.png')
+                plt.close()
+            """
             test_loss += loss.item()
             test_sharpe_loss += sharpe_loss.item()
             test_weight_loss += weight_loss.item()
+
 
     test_loss /= len(test_dataloader)
     test_sharpe_loss /= len(test_dataloader)
@@ -145,11 +165,11 @@ for epoch in range(n_epoch):
     print(
         f"Epoch {epoch+1:03d} | "
         f"Train Loss       : {train_loss:.4f} | "
-        f"Test Loss: {test_loss:.4f}             \n"
+        f"Test Loss       : {test_loss:.4f}             \n"
 
         f"          | "
-        f"Train Sharpe.    : {-train_sharpe_loss:.4f}  | "
-        f"Test Sharpe: {-test_sharpe_loss:.4f}    \n"
+        f"Train Sharpe     : {-train_sharpe_loss:.4f}  | "
+        f"Test Sharpe     : {-test_sharpe_loss:.4f}    \n"
 
         f"          | "
         f"Train Weight Pen.: {train_weight_loss:.4f}  | "

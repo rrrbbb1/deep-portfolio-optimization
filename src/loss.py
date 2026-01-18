@@ -6,11 +6,13 @@ class SharpeLoss(torch.nn.Module):
         self.eps = eps
     
     def forward(self, w, next_r):
-        
+        #print('(loss) w.shape',  w.shape)
+        #print('(loss) next_r.shape',  next_r.shape)
         port_returns = torch.sum(w * next_r, dim=-1)
-        #print('port_returns.shape: ', port_returns.shape)
+        #print('(loss) port_returns.shape: ', port_returns.shape)
 
-        mean_t = port_returns.mean(dim=1) 
+        mean_t = port_returns.mean(dim=1)
+        #print('(loss) mean_t.shape: ', mean_t.shape)
         var_t = port_returns.var(dim=1, unbiased=False)
         sharpe_t = mean_t / torch.sqrt(var_t + self.eps)
 
@@ -24,7 +26,7 @@ class WeightPenalty(torch.nn.Module):
     def forward(self, w):
         
         delta_w = w[:, 1:, :] - w[:, :-1, :]
-        penalty_k = torch.mean(torch.abs(delta_w), dim=1)
-        penalty = torch.mean(penalty_k, dim=1)
+        penalty_k = torch.sum(torch.abs(delta_w), dim=1)
+        penalty = torch.sum(penalty_k, dim=1)
 
         return penalty.mean()

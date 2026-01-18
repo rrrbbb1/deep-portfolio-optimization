@@ -1,0 +1,9 @@
+defaults:
+  - data: etf
+  - inputs: raw
+  - training: default
+  - model: lstm
+
+training:
+  lambda_w: 0.0
+  lr: 5.0e-4

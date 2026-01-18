@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 class BaseDataset(Dataset):
     def __init__(
             self, df_map,
-            n_asset: int = 10, lookback: int = 60, n_samples: int = 100_000
+            n_asset: int = 10, lookback: int = 60, n_samples: int = 1_000_000
         ):
 
         self.returns = df_map['returns'].values.astype(np.float32)

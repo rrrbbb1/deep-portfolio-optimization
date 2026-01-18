@@ -1,0 +1,9 @@
+defaults:
+  - data: etf
+  - inputs: signal
+  - training: default
+  - model: lstm
+
+training:
+  lambda_w: 0.0
+  batch_size: 1_024
