@@ -14,11 +14,10 @@ def load_df(data_path):
 
     means_df = returns_df.rolling(60).mean()[59:]
     stds_df = returns_df.rolling(60).std()[59:]
-
-    norm_returns_df = (returns_df[59:] - means_df) / stds_df
-
     returns_df = returns_df[59:]
     prices_df = prices_df[59:]
+
+    norm_returns_df = (returns_df - means_df) / stds_df
 
     df_map = {}
 
